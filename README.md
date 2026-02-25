@@ -1,0 +1,1 @@
+`script.py` automatically generates favicon and OpenGraph logos for 61418 using some lovely color swatches.
