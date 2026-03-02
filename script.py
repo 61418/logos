@@ -52,25 +52,15 @@ SPECS = [
 
 
 def load_font(px: int) -> ImageFont.FreeTypeFont:
-    candidates = [
-        ("/System/Library/Fonts/Helvetica.ttc", 1),
-        ("/System/Library/Fonts/Helvetica.ttc", 0),
-        ("/System/Library/Fonts/Supplemental/Helvetica.ttf", None),
-        ("/System/Library/Fonts/Supplemental/HelveticaBold.ttf", None),
-        ("/System/Library/Fonts/Supplemental/HelveticaNeue.ttc", 1),
-        ("/Library/Fonts/Helvetica.ttf", None),
-        ("/Library/Fonts/Helvetica Bold.ttf", None),
-    ]
-
-    for path, idx in candidates:
+    root = Path(__file__).resolve().parent
+    font_path = root / "Helvetica.ttc"
+    for idx in (1, 0):
         try:
-            if idx is None:
-                return ImageFont.truetype(path, px)
-            return ImageFont.truetype(path, px, index=idx)
+            return ImageFont.truetype(str(font_path), px, index=idx)
         except OSError:
             continue
 
-    return ImageFont.truetype("DejaVuSans-Bold.ttf", px)
+    raise OSError(f"Could not load font from {font_path}")
 
 
 def best_font_size(
