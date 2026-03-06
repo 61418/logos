@@ -49,6 +49,7 @@ TRANSPARENT_DIR.mkdir(parents=True, exist_ok=True)
 SPECS = [
     ("favicon", (512, 512)),
     ("og", (1200, 630)),
+    ("header", (1600, 300)),
 ]
 
 
