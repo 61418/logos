@@ -164,7 +164,7 @@ def output_dirs_for(text: str) -> tuple[Path, Path]:
     if text == DEFAULT_TEXT:
         base_dir = OUT_DIR
     else:
-        base_dir = OUT_DIR / text
+        base_dir = OUT_DIR / "project" / text
     solid_dir = base_dir / "solid"
     transparent_dir = base_dir / "transparent"
     solid_dir.mkdir(parents=True, exist_ok=True)
