@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 from itertools import permutations
 from pathlib import Path
 
@@ -19,7 +20,7 @@ def rgb_to_hex(r: int, g: int, b: int) -> str:
     return "#{:02X}{:02X}{:02X}".format(r, g, b).lower()
 
 
-TEXT = "61418"
+DEFAULT_TEXT = "61418"
 PALETTES = [
     (f"{swatch_name}{ii}", rgb_to_hex(*bg), rgb_to_hex(*fg))
     for swatch_name, swatch in swatches.items()
@@ -42,10 +43,6 @@ def unique_colors(
 
 TRANSPARENT_COLORS = unique_colors(swatches)
 OUT_DIR = Path("assets")
-SOLID_DIR = OUT_DIR / "solid"
-TRANSPARENT_DIR = OUT_DIR / "transparent"
-SOLID_DIR.mkdir(parents=True, exist_ok=True)
-TRANSPARENT_DIR.mkdir(parents=True, exist_ok=True)
 SPECS = [
     ("favicon", (512, 512)),
     ("og", (1200, 630)),
@@ -67,6 +64,7 @@ def load_font(px: int) -> ImageFont.FreeTypeFont:
 
 def best_font_size(
     draw: ImageDraw.ImageDraw,
+    text: str,
     size: tuple[int, int],
     width_fill: float,
     height_fill: float,
@@ -81,7 +79,7 @@ def best_font_size(
     while lo <= hi:
         mid = (lo + hi) // 2
         font = load_font(mid)
-        bbox = draw.textbbox((0, 0), TEXT, font=font)
+        bbox = draw.textbbox((0, 0), text, font=font)
         tw = bbox[2] - bbox[0]
         th = bbox[3] - bbox[1]
 
@@ -95,6 +93,7 @@ def best_font_size(
 
 
 def render_logo_solid(
+    text: str,
     size: tuple[int, int],
     bg_hex: str,
     fg_hex: str,
@@ -105,21 +104,22 @@ def render_logo_solid(
     img = Image.new("RGB", (w, h), bg_hex)
     draw = ImageDraw.Draw(img)
 
-    font_px = best_font_size(draw, size, width_fill, height_fill)
+    font_px = best_font_size(draw, text, size, width_fill, height_fill)
     font = load_font(font_px)
 
-    bbox = draw.textbbox((0, 0), TEXT, font=font)
+    bbox = draw.textbbox((0, 0), text, font=font)
     tw = bbox[2] - bbox[0]
     th = bbox[3] - bbox[1]
 
     x = (w - tw) // 2 - bbox[0]
     y = (h - th) // 2 - bbox[1]
 
-    draw.text((x, y), TEXT, font=font, fill=fg_hex)
+    draw.text((x, y), text, font=font, fill=fg_hex)
     return img
 
 
 def render_logo_transparent(
+    text: str,
     size: tuple[int, int],
     fg_rgb: tuple[int, int, int],
     width_fill: float,
@@ -129,10 +129,10 @@ def render_logo_transparent(
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))  # fully transparent background
     draw = ImageDraw.Draw(img)
 
-    font_px = best_font_size(draw, size, width_fill, height_fill)
+    font_px = best_font_size(draw, text, size, width_fill, height_fill)
     font = load_font(font_px)
 
-    bbox = draw.textbbox((0, 0), TEXT, font=font)
+    bbox = draw.textbbox((0, 0), text, font=font)
     tw = bbox[2] - bbox[0]
     th = bbox[3] - bbox[1]
 
@@ -140,7 +140,7 @@ def render_logo_transparent(
     y = (h - th) // 2 - bbox[1]
 
     r, g, b = fg_rgb
-    draw.text((x, y), TEXT, font=font, fill=(r, g, b, 255))
+    draw.text((x, y), text, font=font, fill=(r, g, b, 255))
     return img
 
 
@@ -150,12 +150,38 @@ def fills_for(spec_name: str) -> tuple[float, float]:
     return (0.72, 0.72)
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--text",
+        default=DEFAULT_TEXT,
+        help=f"Text to render in logo images (default: {DEFAULT_TEXT})",
+    )
+    return parser.parse_args()
+
+
+def output_dirs_for(text: str) -> tuple[Path, Path]:
+    if text == DEFAULT_TEXT:
+        base_dir = OUT_DIR
+    else:
+        base_dir = OUT_DIR / text
+    solid_dir = base_dir / "solid"
+    transparent_dir = base_dir / "transparent"
+    solid_dir.mkdir(parents=True, exist_ok=True)
+    transparent_dir.mkdir(parents=True, exist_ok=True)
+    return solid_dir, transparent_dir
+
+
 def main():
+    args = parse_args()
+    text = args.text
+    solid_dir, transparent_dir = output_dirs_for(text)
+
     for palette_name, bg, fg in PALETTES:
         for spec_name, size in SPECS:
             wf, hf = fills_for(spec_name)
-            img = render_logo_solid(size, bg, fg, wf, hf)
-            out = SOLID_DIR / f"{palette_name}_{spec_name}.png"
+            img = render_logo_solid(text, size, bg, fg, wf, hf)
+            out = solid_dir / f"{palette_name}_{spec_name}.png"
             img.save(out, optimize=True)
             print("wrote", out)
 
@@ -163,8 +189,8 @@ def main():
         hex_name = rgb_to_hex(*rgb)[1:]  # drop '#'
         for spec_name, size in SPECS:
             wf, hf = fills_for(spec_name)
-            img = render_logo_transparent(size, rgb, wf, hf)
-            out = TRANSPARENT_DIR / f"{hex_name}_{spec_name}.png"
+            img = render_logo_transparent(text, size, rgb, wf, hf)
+            out = transparent_dir / f"{hex_name}_{spec_name}.png"
             img.save(out, optimize=True)
             print("wrote", out)
 
